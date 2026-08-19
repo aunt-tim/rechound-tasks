@@ -2055,6 +2055,11 @@
     }
 
     @media (max-width: 600px) {
+      /* The desktop "manga" zoom compounds with a narrow viewport and pushes
+         rows (esp. the add-task input+button) past the screen edge instead
+         of wrapping — drop it on phones so layout math matches the actual
+         viewport width. */
+      body { zoom: 1; }
       header { padding: 0 12px; }
       .container { padding: 16px 10px 80px; }
       .tab-btn { font-size: 1rem; padding: 10px 4px; letter-spacing: 1px; }
@@ -2064,4 +2069,19 @@
       .rev-sub-head > *:nth-child(n+3),
       .rev-sub-row  > *:nth-child(n+3) { display: none; }
       .rev-changes { display: none; }
+
+      /* ── Tasks tab ── */
+      .tasks-main { padding: 12px 10px 20px; }
+      .tk-name { max-width: 52vw; }
+      .tk-add-row { flex-direction: column; align-items: stretch; }
+      .tk-add-row .tool-btn { align-self: stretch; }
+      /* iOS Safari auto-zooms the page on focusing any input under 16px —
+         keep every typing field at/above that regardless of the class-level
+         font-size set elsewhere. */
+      .tk-add-row input[type=text],
+      .tool-input,
+      .tk-notes-textarea,
+      .tk-text-edit { font-size: 16px; }
+      .tasks-header-stat { flex-wrap: wrap; }
+      .node-progress, .tk-progress { flex-wrap: wrap; }
     }

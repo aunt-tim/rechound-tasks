@@ -153,11 +153,21 @@
     }
   }
 
+  // Deletes are soft (deleted: true) rather than splicing the array, so a
+  // delete has an updatedAt the cross-device merge can compare against a
+  // concurrent edit — otherwise a plain removal is invisible to the merge
+  // and the task gets unioned back in from whichever device hasn't synced
+  // the deletion yet. These helpers keep every other function working with
+  // "what's actually still there" without needing to know that.
+  function liveTasks(node)    { return (node.tasks || []).filter(function (t) { return !t.deleted; }); }
+  function liveSubtasks(task) { return (task.subtasks || []).filter(function (s) { return !s.deleted; }); }
+
   function taskContribution(task) {
     ensureTaskShape(task);
-    if (task.subtasks.length > 0) {
-      var done = task.subtasks.filter(function (s) { return s.done; }).length;
-      return { total: task.subtasks.length, done: done };
+    var subtasks = liveSubtasks(task);
+    if (subtasks.length > 0) {
+      var done = subtasks.filter(function (s) { return s.done; }).length;
+      return { total: subtasks.length, done: done };
     }
     return { total: 1, done: task.done ? 1 : 0 };
   }
@@ -167,7 +177,7 @@
     if (!node) return { total: 0, done: 0 };
     if (isLeaf(node)) {
       var total = 0, done = 0;
-      node.tasks.forEach(function (t) {
+      liveTasks(node).forEach(function (t) {
         var c = taskContribution(t);
         total += c.total; done += c.done;
       });
@@ -215,10 +225,11 @@
     function walk(id, unitId, unitName, unitColor) {
       var node = state.nodes[id];
       if (isLeaf(node)) {
-        node.tasks.forEach(function (t) {
+        liveTasks(node).forEach(function (t) {
           ensureTaskShape(t);
-          if (t.subtasks.length > 0) {
-            t.subtasks.forEach(function (st) {
+          var subtasks = liveSubtasks(t);
+          if (subtasks.length > 0) {
+            subtasks.forEach(function (st) {
               ensureTaskShape(st);
               result.push({
                 task: st, leafId: id, leafName: node.name,
@@ -374,10 +385,11 @@
     container.className = 'tk-leaf-detail';
     container.addEventListener('click', function (e) { e.stopPropagation(); });
 
-    if (node.tasks.length > 0) {
+    var visibleTasks = liveTasks(node);
+    if (visibleTasks.length > 0) {
       var list = document.createElement('ul');
       list.className = 'tk-task-list';
-      node.tasks.forEach(function (task) {
+      visibleTasks.forEach(function (task) {
         list.appendChild(buildTaskRow(node, task));
       });
       wireTaskDragging(list, node);
@@ -459,7 +471,8 @@
 
   function buildTaskRow(node, task) {
     ensureTaskShape(task);
-    var hasSubtasks = task.subtasks.length > 0;
+    var visibleSubtasks = liveSubtasks(task);
+    var hasSubtasks = visibleSubtasks.length > 0;
     var contribution = taskContribution(task);
     var open = state.openTaskIds.has(task.id);
 
@@ -534,7 +547,8 @@
     del.innerHTML = '&times;';
     del.addEventListener('click', function (e) {
       e.stopPropagation();
-      node.tasks = node.tasks.filter(function (t) { return t.id !== task.id; });
+      task.deleted = true;
+      task.updatedAt = Date.now();
       state.openTaskIds.delete(task.id);
       saveNodes();
       renderTree();
@@ -563,7 +577,7 @@
     if (hasSubtasks) {
       var subList = document.createElement('ul');
       subList.className = 'tk-subtask-list';
-      task.subtasks.forEach(function (st) {
+      visibleSubtasks.forEach(function (st) {
         subList.appendChild(buildSubtaskRow(task, st));
       });
       wireSubtaskDragging(subList, task);
@@ -642,7 +656,8 @@
     del.innerHTML = '&times;';
     del.addEventListener('click', function (e) {
       e.stopPropagation();
-      parentTask.subtasks = parentTask.subtasks.filter(function (s) { return s.id !== subtask.id; });
+      subtask.deleted = true;
+      subtask.updatedAt = Date.now();
       saveNodes();
       renderTree();
     });
