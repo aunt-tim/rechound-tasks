@@ -2010,8 +2010,8 @@
     }
     .tk-task-path { font-family: 'Oswald', sans-serif; font-size: 0.68rem; color: var(--ink); opacity: 0.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    @keyframes tkFlash { 0% { background: var(--yellow2); } 100% { background: transparent; } }
-    .tk-flash-target { animation: tkFlash 1.1s ease; border-radius: 4px; }
+    @keyframes tkFlash { 0%, 100% { background: transparent; } 50% { background: var(--yellow2); } }
+    .tk-flash-target { animation: tkFlash 0.5s ease-in-out 6; border-radius: 4px; }
 
     /* Notes dialog */
     dialog.tk-notes-dialog {

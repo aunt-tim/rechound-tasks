@@ -936,7 +936,7 @@
     el.classList.remove('tk-flash-target');
     void el.offsetWidth;
     el.classList.add('tk-flash-target');
-    setTimeout(function () { el.classList.remove('tk-flash-target'); }, 1200);
+    setTimeout(function () { el.classList.remove('tk-flash-target'); }, 3100);
   }
 
   function jumpToTask(item) {
@@ -1029,6 +1029,13 @@
           unitColor: item.unitColor,
         };
       });
+  };
+
+  // Lets other tabs (Planner) jump straight to a task in the tree by id,
+  // the same way clicking a row in the "All Tasks" side panel does here.
+  window.jumpToTaskId = function (id) {
+    var item = collectAllTasks().find(function (i) { return i.task.id === id; });
+    if (item) jumpToTask(item);
   };
 
   document.addEventListener('DOMContentLoaded', initTasks);
