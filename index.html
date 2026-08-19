@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RecHound — Tasks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&amp;family=Oswald:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- clouds -->
+<div class="cloud cloud-1"></div>
+<div class="cloud cloud-2"></div>
+<div class="cloud cloud-3"></div>
+
+<header>
+  <div class="brand-wrap">
+    <div class="brand">RECHOUND</div>
+    <div class="brand-sub">Task Tracker</div>
+  </div>
+  <div class="header-sparks">
+    <span class="spark">★</span>
+    <span class="spark">✦</span>
+    <span class="spark">★</span>
+    <button id="gd-connect-btn" onclick="showDriveConnectModal()" style="background:none;border:1px solid rgba(255,255,255,0.25);border-radius:3px;color:rgba(255,255,255,0.6);font-family:'Oswald',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;padding:3px 8px;cursor:pointer;">☁ Connect Drive</button>
+    <span id="sync-indicator" title="Sync status" style="font-size: 0.65rem; font-family: &quot;Oswald&quot;, sans-serif; font-weight: 700; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); display: none; align-items: center; gap: 4px;"></span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="panel active" style="padding-top:16px;">
+    <div class="manga-panel">
+      <div class="panel-scroll" style="padding:0;">
+        <div class="tasks-body">
+          <div class="tasks-main">
+            <div class="tasks-header-stat">
+              <div class="tk-ring-wrap">
+                <svg width="48" height="48" viewBox="0 0 48 48">
+                  <circle class="tk-ring-track" cx="24" cy="24" r="20"></circle>
+                  <circle class="tk-ring-fill" id="tkHeaderRingFill" cx="24" cy="24" r="20"></circle>
+                </svg>
+                <div class="tk-ring-pct" id="tkHeaderRingPct">0%</div>
+              </div>
+              <div>
+                <div class="tk-stat-value" id="tkHeaderStatValue">0 / 0 tasks</div>
+                <div class="tk-stat-label">Overall completion</div>
+              </div>
+            </div>
+            <div class="tasks-toolbar">
+              <button type="button" id="tkExpandAllBtn">Expand all</button>
+              <span class="tk-divider">|</span>
+              <button type="button" id="tkCollapseAllBtn">Collapse all</button>
+            </div>
+            <ul class="tk-tree" id="tkTreeRoot"></ul>
+          </div>
+          <aside class="tasks-side">
+            <div class="tasks-side-head">
+              <h2>All Tasks</h2>
+              <span class="tasks-side-count" id="tkSidePanelCount"></span>
+            </div>
+            <div class="tk-side-tabs">
+              <button type="button" class="tk-side-tab active" data-tab="active">Active</button>
+              <button type="button" class="tk-side-tab" data-tab="completed">Completed</button>
+            </div>
+            <p class="tasks-side-hint" id="tkSideHint">Drag ⋮⋮ to prioritize. Click a task to jump to it in the tree.</p>
+            <ul class="tk-priority-list" id="tkSidePanelList"></ul>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /container -->
+
+<dialog class="tk-notes-dialog" id="tkNotesDialog">
+  <div class="tk-notes-head">
+    <div class="tk-notes-title" id="tkNotesDialogTitle"></div>
+    <button type="button" class="tk-notes-close" id="tkNotesDialogClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="tk-notes-tabs" id="tkNotesTabs"></div>
+  <textarea class="tk-notes-textarea" id="tkNotesTextarea" placeholder="Write a note..." spellcheck="true"></textarea>
+  <div class="tk-notes-empty" id="tkNotesEmpty" style="display:none;">No notes yet on this task. Click + above to add one.</div>
+  <div class="tk-notes-foot">
+    <button type="button" class="tk-notes-delete" id="tkNotesDeleteBtn">Delete this note</button>
+    <span class="tk-notes-hint">Saved automatically</span>
+  </div>
+</dialog>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="js/store.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/sync.js"></script>
+
+</body></html>
