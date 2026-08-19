@@ -98,10 +98,14 @@
 
   // Stamp completedAt whenever a task/subtask is marked done, so the
   // "Completed" side-panel tab can sort most-recently-finished first.
+  // updatedAt is bumped on every meaningful edit so cross-device sync can
+  // merge concurrent changes by picking whichever copy of a task is newer
+  // instead of one device's whole snapshot blindly overwriting the other's.
   function toggleDone(item) {
     item.done = !item.done;
     if (item.done) item.completedAt = Date.now();
     else delete item.completedAt;
+    item.updatedAt = Date.now();
   }
 
   // Double-click a task/subtask's text to rename it in place.
@@ -131,6 +135,7 @@
           var val = input.value.trim();
           if (val && val !== current) {
             item.text = val;
+            item.updatedAt = Date.now();
             saveNodes();
             renderTree();
             return;
@@ -389,7 +394,7 @@
       e.preventDefault();
       var text = addInput.value.trim();
       if (!text) return;
-      node.tasks.push({ id: uid('task'), text: text, done: false, createdAt: Date.now(), notes: [], subtasks: [] });
+      node.tasks.push({ id: uid('task'), text: text, done: false, createdAt: Date.now(), updatedAt: Date.now(), notes: [], subtasks: [] });
       state.openIds.add(node.id);
       saveNodes();
       renderTree();
@@ -575,7 +580,7 @@
       e.preventDefault();
       var subText = addSubInput.value.trim();
       if (!subText) return;
-      task.subtasks.push({ id: uid('subtask'), text: subText, done: false, createdAt: Date.now(), notes: [] });
+      task.subtasks.push({ id: uid('subtask'), text: subText, done: false, createdAt: Date.now(), updatedAt: Date.now(), notes: [] });
       state.openTaskIds.add(task.id);
       saveNodes();
       renderTree();
@@ -765,7 +770,7 @@
   function commitTextarea() {
     if (!notesCurrentTask || notesActiveIndex === -1) return;
     var note = notesCurrentTask.notes[notesActiveIndex];
-    if (note) note.text = notesTextareaEl.value;
+    if (note) { note.text = notesTextareaEl.value; notesCurrentTask.updatedAt = Date.now(); }
   }
 
   function addNoteTab() {

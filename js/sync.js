@@ -190,6 +190,53 @@ function buildMultipartBody(fileId, content) {
   return { boundary, body };
 }
 
+// ── TASK-LEVEL MERGE ──
+// This page and the main tracker (e.g. running on localhost) can each push
+// a full snapshot of tasks-nodes. A plain object-spread merge only works at
+// the top-level key, so whichever device pushes LAST wins and silently
+// overwrites the other device's concurrent edits. To avoid that, merge
+// tasks-nodes at the individual task/subtask level, keeping whichever copy
+// of each task has the newer updatedAt timestamp, and unioning tasks that
+// only exist on one side (so additions from either device survive).
+// Known limitation: deletions aren't tracked, so a task deleted on one
+// device while the other device hasn't synced yet can reappear.
+function mergeTaskArrays(remoteArr, localArr) {
+  if (!Array.isArray(remoteArr)) return localArr || [];
+  if (!Array.isArray(localArr)) return remoteArr || [];
+  const byId = new Map();
+  remoteArr.forEach(t => byId.set(t.id, t));
+  localArr.forEach(t => {
+    const existing = byId.get(t.id);
+    if (!existing) { byId.set(t.id, t); return; }
+    const localIsNewer = (t.updatedAt || 0) >= (existing.updatedAt || 0);
+    const base  = localIsNewer ? t : existing;
+    const other = localIsNewer ? existing : t;
+    byId.set(t.id, { ...base, subtasks: mergeTaskArrays(other.subtasks, base.subtasks) });
+  });
+  return [...byId.values()];
+}
+function mergeTaskNodes(remoteNodes, localNodes) {
+  if (!remoteNodes || typeof remoteNodes !== 'object') return localNodes;
+  if (!localNodes  || typeof localNodes  !== 'object') return remoteNodes;
+  const merged = {};
+  new Set([...Object.keys(remoteNodes), ...Object.keys(localNodes)]).forEach(id => {
+    const r = remoteNodes[id], l = localNodes[id];
+    if (!r) { merged[id] = l; return; }
+    if (!l) { merged[id] = r; return; }
+    merged[id] = (l.tasks || r.tasks)
+      ? { ...l, tasks: mergeTaskArrays(r.tasks, l.tasks) }
+      : l; // branch node (business unit/activity) — structure rarely changes, prefer local
+  });
+  return merged;
+}
+function mergePriorityOrder(remoteOrder, localOrder) {
+  if (!Array.isArray(remoteOrder)) return localOrder || [];
+  if (!Array.isArray(localOrder))  return remoteOrder || [];
+  const merged = [...localOrder];
+  remoteOrder.forEach(id => { if (!merged.includes(id)) merged.push(id); });
+  return merged;
+}
+
 // ── PUSH ──
 async function statePush() {
   if (!isTokenValid()) {
@@ -207,7 +254,26 @@ async function statePush() {
     let cloudData = {};
     if (getRes.ok) { try { cloudData = await getRes.json(); } catch(e) {} }
 
-    const merged = { ...cloudData, ...bundleData() };
+    const bundle = bundleData();
+    let tasksChangedByMerge = false;
+    if (bundle['tasks-nodes'] !== undefined && cloudData['tasks-nodes'] !== undefined) {
+      try {
+        const mergedNodes = mergeTaskNodes(JSON.parse(cloudData['tasks-nodes']), JSON.parse(bundle['tasks-nodes']));
+        bundle['tasks-nodes'] = JSON.stringify(mergedNodes);
+        tasksChangedByMerge = true;
+      } catch(e) { /* malformed JSON on either side — fall back to overwrite */ }
+    }
+    if (bundle['tasks-priorityOrder'] !== undefined && cloudData['tasks-priorityOrder'] !== undefined) {
+      try {
+        bundle['tasks-priorityOrder'] = JSON.stringify(mergePriorityOrder(JSON.parse(cloudData['tasks-priorityOrder']), JSON.parse(bundle['tasks-priorityOrder'])));
+      } catch(e) {}
+    }
+    if (tasksChangedByMerge) {
+      _store['tasks-nodes'] = bundle['tasks-nodes'];
+      window.reloadTasksFromStore?.();
+    }
+
+    const merged = { ...cloudData, ...bundle };
     const content = JSON.stringify(merged, null, 2);
     const { boundary, body } = buildMultipartBody(fileId, content);
 
